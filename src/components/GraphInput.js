@@ -32,7 +32,7 @@ export default function GraphInput() {
         <label for="input-async-modules">Async modules</label>
         <span
           >Modules that use top-level await, thuse whose execution always
-          completes asynchronously.</span
+          completes asynchronously, in fulfillment order.</span
         >
       </div>
       <${Textarea} id="input-async-modules" signal=${asyncModules} rows="2" />
