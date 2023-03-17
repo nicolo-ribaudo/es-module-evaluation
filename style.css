@@ -1,0 +1,45 @@
+#app {
+  display: grid;
+  grid-template: auto auto / 1.5fr 1fr 1fr;
+  gap: 2em;
+}
+
+.graph-input {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1em;
+}
+
+.graph-input label {
+  font-weight: bold;
+  display: block;
+}
+
+.graph-input span {
+  font-size: 0.8em;
+  color: #444;
+}
+
+.graph-container {
+  text-align: center;
+}
+
+.modules-fields {
+  grid-column: 1 / 4;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th {
+  background-color: #eeeeee;
+}
+
+th,
+td {
+  border: 1px solid black;
+  padding: 0.4em;
+  vertical-align: baseline;
+}
