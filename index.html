@@ -9,7 +9,7 @@
   </head>
   <body>
     <div id="app"></div>
-    <script type="importmap">
+    <!--<script type="importmap">
       {
         "imports": {
           "@preact/signals": "https://esm.sh/@preact/signals@1.1.3",
@@ -17,6 +17,19 @@
           "preact/": "https://esm.sh/preact@10.13.0/",
           "htm": "https://esm.sh/*htm@3.1.1",
           "htm/": "https://esm.sh/*htm@3.1.1/"
+        }
+      }
+    </script>-->
+    <script type="importmap">
+      {
+        "imports": {
+          "preact": "./deps/preact.js",
+          "preact/hooks": "./deps/preact_hooks.js",
+          "preact/debug": "./deps/preact_debug.js",
+          "preact/devtools": "./deps/preact_devtools.js",
+          "@preact/signals": "./deps/@preact_signals.js",
+          "htm": "./deps/htm.js",
+          "htm/preact": "./deps/htm_preact.js"
         }
       }
     </script>
