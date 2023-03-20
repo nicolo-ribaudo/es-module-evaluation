@@ -55,3 +55,7 @@ td.highlight {
   transition-duration: 0.2s;
   transition-timing-function: cubic-bezier(0.19, 1, 0.22, 1);
 }
+
+.warning {
+  color: darkorange;
+}

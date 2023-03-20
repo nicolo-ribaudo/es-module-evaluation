@@ -5,6 +5,8 @@ function P(AO, step) {
 
 const InnerModuleEvaluation = P.bind(null, "InnerModuleEvaluation");
 
+export const beforePromiseJob = "@@beforePromieJob";
+
 export default {
   Evaluate_1: P("Evaluate", "1"),
   Evaluate_9: P("Evaluate", "9"),
@@ -30,5 +32,5 @@ export default {
 
   AsyncModuleExecutionRejected_5: P("AsyncModuleExecutionRejected", "5"),
 
-  RunPromiseJobs: P("RunPromiseJobs"),
+  RunPromiseJobs: P(beforePromiseJob),
 };

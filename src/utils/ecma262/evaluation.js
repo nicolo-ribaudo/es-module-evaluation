@@ -1,5 +1,5 @@
 import { Assert, AC, NC } from "./spec-utils.js";
-import bp from "./breakpoints.js";
+import bp, { beforePromiseJob } from "./breakpoints.js";
 import { AO } from "./stack-utils.js";
 
 function g(module, fieldName) {
@@ -9,20 +9,33 @@ function s(module, fieldName, value) {
   module.fields[fieldName].value = value;
 }
 
-export const Evaluate = AO(function* (
-  module,
-  asyncResolutionOrder,
-  failingModules
-) {
+export default AO(function* (module, asyncResolutionOrder, failingModules) {
+  const pendingPromiseJobs = new Map();
+
+  yield* Evaluate(module, failingModules, pendingPromiseJobs);
+
+  for (const name of asyncResolutionOrder) {
+    if (!pendingPromiseJobs.has(name)) throw new Error("Deadlock");
+    yield bp.RunPromiseJobs();
+    if (failingModules.has(name)) {
+      yield* pendingPromiseJobs.get(name).onRejected("Error in " + name);
+      return;
+    } else {
+      yield* pendingPromiseJobs.get(name).onFulfilled();
+    }
+  }
+
+  console.log("Done");
+});
+
+const Evaluate = AO(function* (module, failingModules, pendingPromiseJobs) {
   yield bp.Evaluate_1({ module });
 
   // This state is not explitly tracked in the modules evaluation
   // algorithm, but we need it to implement the correct semantics.
-  const pendingPromiseJobs = new Map();
-  const asyncEvaluationFieldOrder = [];
   const implicitState = {
     pendingPromiseJobs,
-    asyncEvaluationFieldOrder,
+    asyncEvaluationFieldOrder: [],
     failingModules,
   };
 
@@ -47,7 +60,6 @@ export const Evaluate = AO(function* (
     Assert(g(module, "EvaluationError") === result);
     // TODO: reject
 
-    console.log("Done");
     return;
   } else {
     Assert(
@@ -60,31 +72,6 @@ export const Evaluate = AO(function* (
       // TODO: Resolve
     }
     Assert(stack.length === 0);
-  }
-
-  yield* RunPromiseJobs(
-    asyncResolutionOrder,
-    pendingPromiseJobs,
-    failingModules
-  );
-
-  console.log("Done");
-});
-
-const RunPromiseJobs = AO(function* (
-  asyncResolutionOrder,
-  pendingPromiseJobs,
-  failingModules
-) {
-  for (const name of asyncResolutionOrder) {
-    if (!pendingPromiseJobs.has(name)) throw new Error("Deadlock");
-    yield bp.RunPromiseJobs();
-    if (failingModules.has(name)) {
-      yield* pendingPromiseJobs.get(name).onRejected("Error in " + name);
-      return;
-    } else {
-      yield* pendingPromiseJobs.get(name).onFulfilled();
-    }
   }
 });
 

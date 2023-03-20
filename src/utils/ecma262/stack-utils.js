@@ -4,14 +4,13 @@ export function AO(runner) {
   return function* () {
     const stackDepth = ++currentStackDepth;
     let it = runner.apply(this, arguments);
-    let res;
-    let nextArg;
-    while (!(res = it.next(nextArg)).done) {
-      if (!res.value.AO) res.value.AO = name;
-      if (!res.value.stackDepth) res.value.stackDepth = stackDepth;
-      nextArg = yield res.value;
+    let done, value, nextArg;
+    while ((({ done, value } = it.next(nextArg)), !done)) {
+      if (!value.AO) value.AO = name;
+      if (!value.stackDepth) value.stackDepth = stackDepth;
+      nextArg = yield value;
     }
     --currentStackDepth;
-    return res.value;
+    return value;
   };
 }

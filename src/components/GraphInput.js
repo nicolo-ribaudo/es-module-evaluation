@@ -5,6 +5,7 @@ import {
   inputConnections as connections,
   inputAsync as asyncModules,
   inputFailing as failingModules,
+  stale,
 } from "../state.js";
 
 export default function GraphInput() {

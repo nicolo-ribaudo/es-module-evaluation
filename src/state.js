@@ -1,4 +1,5 @@
 import { signal, computed, effect } from "@preact/signals";
+import { beforePromiseJob } from "./utils/ecma262/breakpoints.js";
 import { buildModulesGraph } from "./utils/graph.js";
 
 const initialParams = new URLSearchParams(window.location.hash.slice(1));
@@ -47,11 +48,14 @@ export const graph = computed(() => {
       inputAsync.value,
       inputFailing.value
     );
+    if (currentEvaluation.peek() !== undefined) stale.value = true;
   } catch {
     console.log("fallback");
   }
   return prevGraph;
 });
+
+export const stale = signal(false);
 
 export const modulesState = signal(computeModulesState());
 
@@ -67,7 +71,11 @@ export const currentBreakpoint = {
   step: signal(undefined),
   scope: signal({}),
   stackDepth: signal(undefined),
+  isPromiseJob: null,
 };
+currentBreakpoint.isPromiseJob = computed(
+  () => currentBreakpoint.AO.value === beforePromiseJob
+);
 
 export function computeModulesState() {
   const modules = graph.value.nodes.map((node) => ({
