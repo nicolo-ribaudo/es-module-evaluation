@@ -1,4 +1,5 @@
 import { html } from "htm/preact";
+import { useLayoutEffect, useRef } from "preact/hooks";
 
 import { modulesState } from "../state.js";
 
@@ -47,19 +48,39 @@ function getName(module) {
 }
 
 function EnumField({ field }) {
-  return html`<td><code>${field.value}</code></td>`;
+  const ref = useUpdatesHighglighting();
+  return html`<td ref=${ref}><code>${field.value}</code></td>`;
 }
 
 function StringField({ field, render }) {
   let { value } = field;
   if (render && value !== undefined) value = render(value);
-  return html`<td>${value}</td>`;
+
+  const ref = useUpdatesHighglighting();
+  return html`<td ref=${ref}>${value}</td>`;
 }
 
 function BooleanField({ field }) {
-  return html`<td><strong>${field.value ? "true" : "false"}</strong></td>`;
+  const ref = useUpdatesHighglighting();
+  return html`<td ref=${ref}>
+    <strong>${field.value ? "true" : "false"}</strong>
+  </td>`;
 }
 
 function ListField({ field, render }) {
-  return html`<td>« ${field.value.map(render).join(", ")} »</td>`;
+  const ref = useUpdatesHighglighting();
+  return html`<td ref=${ref}>« ${field.value.map(render).join(", ")} »</td>`;
+}
+
+function useUpdatesHighglighting() {
+  const ref = useRef();
+  useLayoutEffect(() => {
+    ref.current.classList.add("highlight");
+    let timeout = setTimeout(
+      () => ref.current.classList.remove("highlight"),
+      250
+    );
+    return () => clearTimeout(timeout);
+  });
+  return ref;
 }

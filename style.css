@@ -43,3 +43,15 @@ td {
   padding: 0.4em;
   vertical-align: baseline;
 }
+
+td {
+  transition-property: background-color;
+  transition-duration: 1s;
+  transition-timing-function: ease-in-out;
+}
+
+td.highlight {
+  background-color: darksalmon;
+  transition-duration: 0.2s;
+  transition-timing-function: cubic-bezier(0.19, 1, 0.22, 1);
+}
