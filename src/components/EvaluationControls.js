@@ -18,7 +18,10 @@ export default function EvaluationControls() {
         ${currentEvaluation.value ? "Reload" : "Load"} modules graph
       </button>
       ${currentEvaluation.value
-        ? html`<button onclick=${nextStep}>Next step</button>`
+        ? html`<button onclick=${nextStep}>Step in</button>`
+        : null}
+      ${currentEvaluation.value
+        ? html`<button onclick=${nextStepCurrentAO}>Step over</button>`
         : null}
       <${PausedStatus} />
     </div>
@@ -49,6 +52,24 @@ function nextStep() {
   } else {
     currentBreakpoint.paused.value = true;
     currentBreakpoint.AO.value = value.AO;
+    currentBreakpoint.stackDepth.value = value.stackDepth;
+    currentBreakpoint.step.value = value.step;
+    currentBreakpoint.scope.value = value.scope;
+  }
+}
+
+function nextStepCurrentAO() {
+  let done, value;
+  do {
+    ({ done, value } = currentEvaluation.value.next());
+  } while (!done && currentBreakpoint.stackDepth.value < value.stackDepth);
+  if (done) {
+    currentEvaluation.value = null;
+    currentBreakpoint.paused.value = false;
+  } else {
+    currentBreakpoint.paused.value = true;
+    currentBreakpoint.AO.value = value.AO;
+    currentBreakpoint.stackDepth.value = value.stackDepth;
     currentBreakpoint.step.value = value.step;
     currentBreakpoint.scope.value = value.scope;
   }

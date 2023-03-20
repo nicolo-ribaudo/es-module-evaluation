@@ -66,6 +66,7 @@ export const currentBreakpoint = {
   AO: signal(undefined),
   step: signal(undefined),
   scope: signal({}),
+  stackDepth: signal(undefined),
 };
 
 export function computeModulesState() {

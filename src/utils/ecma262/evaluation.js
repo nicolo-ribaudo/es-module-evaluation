@@ -1,5 +1,6 @@
 import { Assert, AC, NC } from "./spec-utils.js";
 import bp from "./breakpoints.js";
+import { AO } from "./stack-utils.js";
 
 function g(module, fieldName) {
   return module.fields[fieldName].peek();
@@ -8,7 +9,11 @@ function s(module, fieldName, value) {
   module.fields[fieldName].value = value;
 }
 
-export function* Evaluate(module, asyncResolutionOrder, failingModules) {
+export const Evaluate = AO(function* (
+  module,
+  asyncResolutionOrder,
+  failingModules
+) {
   yield bp.Evaluate_1({ module });
 
   // This state is not explitly tracked in the modules evaluation
@@ -64,9 +69,9 @@ export function* Evaluate(module, asyncResolutionOrder, failingModules) {
   );
 
   console.log("Done");
-}
+});
 
-function* RunPromiseJobs(
+const RunPromiseJobs = AO(function* (
   asyncResolutionOrder,
   pendingPromiseJobs,
   failingModules
@@ -81,9 +86,14 @@ function* RunPromiseJobs(
       yield* pendingPromiseJobs.get(name).onFulfilled();
     }
   }
-}
+});
 
-function* InnerModuleEvaluation(module, stack, index, implicitState) {
+const InnerModuleEvaluation = AO(function* (
+  module,
+  stack,
+  index,
+  implicitState
+) {
   yield bp.InnerModuleEvaluation_2({ module, stack, index });
   if (
     g(module, "Status") === "evaluating-async" ||
@@ -179,7 +189,7 @@ function* InnerModuleEvaluation(module, stack, index, implicitState) {
     s(module, "AsyncEvaluation", true);
     implicitState.asyncEvaluationFieldOrder.push(module);
     if (g(module, "PendingAsyncDependencies") === 0) {
-      yield* ExecuteAsyncModule(module, implicitState);
+      ExecuteAsyncModule(module, implicitState);
     }
   } else {
     const completion = ExecuteSyncModule(module, implicitState);
@@ -206,7 +216,7 @@ function* InnerModuleEvaluation(module, stack, index, implicitState) {
 
   yield bp.InnerModuleEvaluation_17({ module, stack, index });
   return NC(index);
-}
+});
 
 function ExecuteSyncModule(module, implicitState) {
   console.log("Executing " + module.name);
@@ -218,7 +228,7 @@ function ExecuteSyncModule(module, implicitState) {
   }
 }
 
-function* ExecuteAsyncModule(module, implicitState) {
+function ExecuteAsyncModule(module, implicitState) {
   Assert(
     g(module, "Status") === "evaluating" ||
       g(module, "Status") === "evaluating-async"
@@ -259,7 +269,7 @@ function GatherAvailableAncestors(module, execList) {
   }
 }
 
-function* AsyncModuleExecutionFulfilled(module, implicitState) {
+const AsyncModuleExecutionFulfilled = AO(function* (module, implicitState) {
   if (g(module, "Status") === "evaluated") {
     Assert(g(module, "EvaluationError") !== undefined);
     return;
@@ -286,11 +296,15 @@ function* AsyncModuleExecutionFulfilled(module, implicitState) {
   );
 
   for (const m of sortedExecList) {
-    yield bp.AsyncModuleExecutionFulfilled_12_a({ module, sortedExecList, m });
+    yield bp.AsyncModuleExecutionFulfilled_12_a({
+      module,
+      sortedExecList,
+      m,
+    });
     if (g(m, "Status") === "evaluated") {
       Assert(g(m, "EvaluationError") !== undefined);
     } else if (g(m, "HasTLA") === true) {
-      yield* ExecuteAsyncModule(m, implicitState);
+      ExecuteAsyncModule(m, implicitState);
     } else {
       const result = ExecuteSyncModule(m, implicitState);
       if (result instanceof AC) {
@@ -302,9 +316,13 @@ function* AsyncModuleExecutionFulfilled(module, implicitState) {
   }
 
   yield bp.AsyncModuleExecutionFulfilled_return({ module, sortedExecList });
-}
+});
 
-function* AsyncModuleExecutionRejected(module, error, implicitState) {
+const AsyncModuleExecutionRejected = AO(function* (
+  module,
+  error,
+  implicitState
+) {
   if (g(module, "Status") === "evaluated") {
     Assert(g(module, "EvaluationError") !== undefined);
     return;
@@ -319,4 +337,4 @@ function* AsyncModuleExecutionRejected(module, error, implicitState) {
   for (const m of g(module, "AsyncParentModules")) {
     yield* AsyncModuleExecutionRejected(m, error, implicitState);
   }
-}
+});
