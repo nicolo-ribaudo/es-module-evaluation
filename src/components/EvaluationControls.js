@@ -23,7 +23,10 @@ export default function EvaluationControls() {
       controls.push(
         html`<button key="1" onclick=${stepIn}>Step in</button>`,
         html`<button key="2" onclick=${stepOver}>Step over</button>`,
-        html`<button key="3" onclick=${stepOut}>Step out</button>`
+        html`<button key="3" onclick=${stepOut}>Step out</button>`,
+        html`<button key="4" onclick=${stepBack} disabled=${stale}>
+          Step back
+        </button>`
       );
     }
   }
@@ -33,7 +36,7 @@ export default function EvaluationControls() {
 
   return html`
     <div class="evaluation-controls">
-      <button onclick=${updateGraph}>
+      <button onclick=${loadEvaluation}>
         ${currentEvaluation.value ? "Reload" : "Load"}
       </button>
       ${controls}
@@ -67,32 +70,42 @@ export function PausedStatus() {
 }
 
 function stepIn() {
-  upsateBreakpointState(currentEvaluation.value.next());
+  const res = currentEvaluation.value.next();
+  currentBreakpoint.count++;
+  updateBreakpointState(res);
 }
 
 function stepOver() {
   let res;
   do {
     res = currentEvaluation.value.next();
+    currentBreakpoint.count++;
   } while (
     !res.done &&
     currentBreakpoint.stackDepth.value < res.value.stackDepth
   );
-  upsateBreakpointState(res);
+  updateBreakpointState(res);
 }
 
 function stepOut() {
   let res;
   do {
     res = currentEvaluation.value.next();
+    currentBreakpoint.count++;
   } while (
     !res.done &&
     currentBreakpoint.stackDepth.value <= res.value.stackDepth
   );
-  upsateBreakpointState(res);
+  updateBreakpointState(res);
 }
 
-function upsateBreakpointState({ done, value }) {
+function stepBack() {
+  const prevCount = currentBreakpoint.count - 1;
+  loadEvaluation();
+  while (currentBreakpoint.count < prevCount) stepIn();
+}
+
+function updateBreakpointState({ done, value }) {
   if (done) {
     currentEvaluation.value = null;
     currentBreakpoint.paused.value = false;
@@ -120,7 +133,7 @@ function inspectValue(arg) {
   return JSON.stringify(arg);
 }
 
-function updateGraph() {
+function loadEvaluation() {
   modulesState.value = computeModulesState();
   currentEvaluation.value = Evaluate(
     entrypointModule.value,
@@ -128,5 +141,6 @@ function updateGraph() {
     graph.value.failingModules
   );
   stale.value = false;
+  currentBreakpoint.count = 0;
   stepIn();
 }

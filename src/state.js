@@ -72,6 +72,7 @@ export const currentBreakpoint = {
   scope: signal({}),
   stackDepth: signal(undefined),
   isPromiseJob: null,
+  count: 0,
 };
 currentBreakpoint.isPromiseJob = computed(
   () => currentBreakpoint.AO.value === beforePromiseJob
