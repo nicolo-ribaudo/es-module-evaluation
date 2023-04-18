@@ -91,7 +91,12 @@ const InnerModuleEvaluation = AO(function* (
     g(module, "Status") === "evaluating-async" ||
     g(module, "Status") === "evaluated"
   ) {
-    if (g(module, "Status") === "evaluated") s(module, "CycleRoot", module);
+    if (
+      g(module, "Status") === "evaluated" &&
+      stack.includes(g(module, "CycleRoot"))
+    ) {
+      s(module, "CycleRoot", module);
+    }
     if (g(module, "EvaluationError") === undefined) return NC(index);
     return AC(g(module, "EvaluationError"));
   }
