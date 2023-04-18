@@ -99,11 +99,21 @@ const InnerModuleEvaluation = AO(function* (
   s(module, "DFSAncestorIndex", index);
   s(module, "PendingAsyncDependencies", 0);
   index += 1;
+
+  const evaluationList = [];
+  for (const requiredModule of module.dependencies) {
+    if (module.deferredDependencies.has(requiredModule)) {
+      GatherAsynchronousTransitiveDependencies(requiredModule, evaluationList);
+    } else if (!evaluationList.includes(requiredModule)) {
+      evaluationList.push(requiredModule);
+    }
+  }
+
   stack.push(module);
 
-  yield bp.InnerModuleEvaluation_11({ module, stack, index });
-  for (let requiredModule of module.dependencies) {
-    yield bp.InnerModuleEvaluation_11_b({
+  yield bp.InnerModuleEvaluation_14({ module, evaluationList, stack, index });
+  for (let requiredModule of evaluationList) {
+    yield bp.InnerModuleEvaluation_14_a({
       module,
       stack,
       index,
@@ -115,8 +125,9 @@ const InnerModuleEvaluation = AO(function* (
       index,
       implicitState
     );
-    yield bp.InnerModuleEvaluation_11_b_completion({
+    yield bp.InnerModuleEvaluation_14_a_completion({
       module,
+      evaluationList,
       stack,
       index,
       requiredModule,
@@ -167,7 +178,7 @@ const InnerModuleEvaluation = AO(function* (
     }
   }
 
-  yield bp.InnerModuleEvaluation_12({ module, stack, index });
+  yield bp.InnerModuleEvaluation_15({ module, stack, index });
   if (
     g(module, "PendingAsyncDependencies") > 0 ||
     g(module, "HasTLA") === true
@@ -200,9 +211,31 @@ const InnerModuleEvaluation = AO(function* (
     }
   }
 
-  yield bp.InnerModuleEvaluation_17({ module, stack, index });
+  yield bp.InnerModuleEvaluation_20({ module, stack, index });
   return NC(index);
 });
+
+function GatherAsynchronousTransitiveDependencies(
+  module,
+  result,
+  seen = new Set()
+) {
+  if (seen.has(module)) return;
+  seen.add(module);
+  if (
+    g(module, "Status") === "evaluating" ||
+    g(module, "Status") === "evaluated"
+  ) {
+    return;
+  }
+  if (g(module, "HasTLA") === true) {
+    if (!result.includes(module)) result.push(module);
+    return;
+  }
+  for (const requiredModule of module.dependencies) {
+    GatherAsynchronousTransitiveDependencies(requiredModule, result, seen);
+  }
+}
 
 function ExecuteSyncModule(module, implicitState) {
   console.log("Executing " + module.name);

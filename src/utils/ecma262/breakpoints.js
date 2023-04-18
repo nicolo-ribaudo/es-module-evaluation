@@ -13,12 +13,12 @@ export default {
   Evaluate_9_b: P("Evaluate", "9.b"),
 
   InnerModuleEvaluation_2: InnerModuleEvaluation("2"),
-  InnerModuleEvaluation_11: InnerModuleEvaluation("11"),
-  InnerModuleEvaluation_11_b: InnerModuleEvaluation("11.b"),
-  InnerModuleEvaluation_11_b_completion:
-    InnerModuleEvaluation("11.b (completion)"),
-  InnerModuleEvaluation_12: InnerModuleEvaluation("12"),
-  InnerModuleEvaluation_17: InnerModuleEvaluation("17"),
+  InnerModuleEvaluation_14: InnerModuleEvaluation("14"),
+  InnerModuleEvaluation_14_a: InnerModuleEvaluation("14.a"),
+  InnerModuleEvaluation_14_a_completion:
+    InnerModuleEvaluation("14.a (completion)"),
+  InnerModuleEvaluation_15: InnerModuleEvaluation("15"),
+  InnerModuleEvaluation_20: InnerModuleEvaluation("20"),
 
   AsyncModuleExecutionFulfilled_8: P("AsyncModuleExecutionFulfilled", "8"),
   AsyncModuleExecutionFulfilled_12_a: P(

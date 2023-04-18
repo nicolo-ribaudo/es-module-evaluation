@@ -47,8 +47,8 @@ export function parseGraph(structureText, connectionsText) {
       continue;
     }
 
-    const [, from, to] = /^([^ ]+) -> ([^ ]+)$/.exec(line);
-    edges.push({ from, to });
+    const [, from, type, to] = /^([^ ]+) (-|\.)> ([^ ]+)$/.exec(line);
+    edges.push({ from, deferred: type === ".", to });
   }
 
   return { nodes, edges };
