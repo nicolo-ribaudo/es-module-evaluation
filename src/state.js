@@ -82,6 +82,7 @@ export function computeModulesState() {
   const modules = graph.value.nodes.map((node) => ({
     name: node.name,
     dependencies: [],
+    deferredDependencies: new Set(),
     fields: {
       Status: signal("linked"),
       EvaluationError: signal(undefined),
@@ -96,8 +97,11 @@ export function computeModulesState() {
   }));
 
   const modulesMap = new Map(modules.map((mod) => [mod.name, mod]));
-  for (const { from, to } of graph.value.edges) {
-    modulesMap.get(from).dependencies.push(modulesMap.get(to));
+  for (const { from, to, deferred } of graph.value.edges) {
+    const F = modulesMap.get(from);
+    const T = modulesMap.get(to);
+    F.dependencies.push(T);
+    if (deferred) F.deferredDependencies.add(T);
   }
 
   for (const name of graph.value.asyncModules) {

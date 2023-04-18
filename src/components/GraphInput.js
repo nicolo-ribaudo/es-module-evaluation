@@ -22,10 +22,11 @@ export default function GraphInput() {
 
       <div>
         <label for="input-connections">Module connections</label>
-        <span
-          >Dependencies between modules, where "<code>A -> B</code>" means "A
-          imports B". One per line.</span
-        >
+        <span>
+          Dependencies between modules, where "<code>A -> B</code>" means "A
+          imports B" and "<code>A .> B</code>" means "A imports deferred B". One
+          per line.
+        </span>
       </div>
       <${Textarea} id="input-connections" signal=${connections} rows="8" />
 

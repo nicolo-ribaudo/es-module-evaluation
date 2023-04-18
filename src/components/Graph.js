@@ -47,6 +47,10 @@ export default function Graph({
           stroke: black;
           marker-end: url(#arrowhead);
         }
+
+        .dashed {
+          stroke-dasharray: 5, 5;
+        }
       </style>
 
       <defs>
@@ -133,8 +137,10 @@ function GraphEdge({ edge, nodes, sizes }) {
     }
   }
 
+  const lineClass = edge.deferred ? "dashed" : "";
+
   return svg`
-    <line x1=${fromX} y1=${fromY} x2=${toX} y2=${toY} />
+    <line x1=${fromX} y1=${fromY} x2=${toX} y2=${toY} class=${lineClass} />
   `;
 }
 

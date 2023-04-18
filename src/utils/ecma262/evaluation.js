@@ -41,6 +41,8 @@ const Evaluate = AO(function* (module, failingModules, pendingPromiseJobs) {
 
   Assert(
     g(module, "Status") === "linked" ||
+      g(module, "Status") === "async-subgraphs-evaluating-async" ||
+      g(module, "Status") === "async-subgraphs-evaluated" ||
       g(module, "Status") === "evaluating-async" ||
       g(module, "Status") === "evaluated"
   );
@@ -51,7 +53,10 @@ const Evaluate = AO(function* (module, failingModules, pendingPromiseJobs) {
   yield bp.Evaluate_9({ module, result, stack });
   if (result instanceof AC) {
     for (const m of stack) {
-      Assert(g(m, "Status") === "evaluating");
+      Assert(
+        g(m, "Status") === "async-subgraphs-searching" ||
+          g(m, "Status") === "evaluating"
+      );
       s(m, "Status", "evaluated");
       s(m, "EvaluationError", result.value);
     }
@@ -86,6 +91,7 @@ const InnerModuleEvaluation = AO(function* (
     g(module, "Status") === "evaluating-async" ||
     g(module, "Status") === "evaluated"
   ) {
+    if (g(module, "Status") === "evaluated") s(module, "CycleRoot", module);
     if (g(module, "EvaluationError") === undefined) return NC(index);
     return AC(g(module, "EvaluationError"));
   }
@@ -93,81 +99,77 @@ const InnerModuleEvaluation = AO(function* (
     return NC(index);
   }
 
-  Assert(g(module, "Status") === "linked");
+  Assert(
+    g(module, "Status") === "linked" ||
+      g(module, "Status") === "async-subgraphs-searching" ||
+      g(module, "Status") === "async-subgraphs-evauating-async" ||
+      g(module, "Status") === "async-subgraphs-evaluated"
+  );
   s(module, "Status", "evaluating");
   s(module, "DFSIndex", index);
   s(module, "DFSAncestorIndex", index);
   s(module, "PendingAsyncDependencies", 0);
+  s(module, "AsyncEvaluation", false);
   index += 1;
   stack.push(module);
 
-  yield bp.InnerModuleEvaluation_11({ module, stack, index });
+  yield bp.InnerModuleEvaluation_12({ module, stack, index });
   for (let requiredModule of module.dependencies) {
-    yield bp.InnerModuleEvaluation_11_b({
-      module,
-      stack,
-      index,
-      requiredModule,
-    });
-    const completion = yield* InnerModuleEvaluation(
-      requiredModule,
-      stack,
-      index,
-      implicitState
-    );
-    yield bp.InnerModuleEvaluation_11_b_completion({
-      module,
-      stack,
-      index,
-      requiredModule,
-      result: completion,
-    });
-    if (completion instanceof AC) return completion;
-    else index = completion.value;
-
-    Assert(
-      g(requiredModule, "Status") === "evaluating" ||
-        g(requiredModule, "Status") === "evaluating-async" ||
-        g(requiredModule, "Status") === "evaluated"
-    );
-    Assert(
-      (g(requiredModule, "Status") === "evaluating") ===
-        stack.includes(requiredModule)
-    );
-    if (g(requiredModule, "Status") === "evaluating") {
-      s(
+    if (module.deferredDependencies.has(requiredModule)) {
+      yield bp.InnerModuleEvaluation_12_b_i({
         module,
-        "DFSAncestorIndex",
-        Math.min(
-          g(module, "DFSAncestorIndex"),
-          g(requiredModule, "DFSAncestorIndex")
-        )
-      );
-    } else {
-      requiredModule = g(requiredModule, "CycleRoot");
-      Assert(
-        g(requiredModule, "Status") === "evaluating-async" ||
-          g(requiredModule, "Status") === "evaluated"
-      );
-      if (g(requiredModule, "EvaluationError") !== undefined) {
-        return g(requiredModule, "EvaluationError");
-      }
-    }
-    if (g(requiredModule, "AsyncEvaluation") === true) {
-      s(
-        module,
-        "PendingAsyncDependencies",
-        g(module, "PendingAsyncDependencies") + 1
-      );
-      s(
+        stack,
+        index,
         requiredModule,
-        "AsyncParentModules",
-        g(requiredModule, "AsyncParentModules").concat(module)
+      });
+      const completion = yield* InnerAsyncSubgraphsEvaluation(
+        requiredModule,
+        stack,
+        index,
+        implicitState
       );
+      yield bp.InnerModuleEvaluation_12_b_i_completion({
+        module,
+        stack,
+        index,
+        requiredModule,
+        result: completion,
+      });
+      if (completion instanceof AC) return completion;
+      else index = completion.value;
+    } else {
+      yield bp.InnerModuleEvaluation_12_c_i({
+        module,
+        stack,
+        index,
+        requiredModule,
+      });
+      const completion = yield* InnerModuleEvaluation(
+        requiredModule,
+        stack,
+        index,
+        implicitState
+      );
+      yield bp.InnerModuleEvaluation_12_c_i_completion({
+        module,
+        stack,
+        index,
+        requiredModule,
+        result: completion,
+      });
+      if (completion instanceof AC) return completion;
+      else index = completion.value;
     }
+
+    const completion = AfterCyclicModuleRecordEvaluation(
+      module,
+      requiredModule,
+      stack
+    );
+    if (completion instanceof AC) return completion;
   }
 
-  yield bp.InnerModuleEvaluation_12({ module, stack, index });
+  yield bp.InnerModuleEvaluation_13({ module, stack, index });
   if (
     g(module, "PendingAsyncDependencies") > 0 ||
     g(module, "HasTLA") === true
@@ -183,16 +185,138 @@ const InnerModuleEvaluation = AO(function* (
     if (completion instanceof AC) return completion;
   }
 
-  Assert(stack.filter((m) => m === module).length === 1);
+  Assert(stack.includes(module));
   Assert(g(module, "DFSAncestorIndex") <= g(module, "DFSIndex"));
   if (g(module, "DFSAncestorIndex") === g(module, "DFSIndex")) {
     let done = false;
     while (done === false) {
       const requiredModule = stack.pop();
       if (g(requiredModule, "AsyncEvaluation") === false) {
+        Assert(g(requiredModule, "Status") === "evaluating");
         s(requiredModule, "Status", "evaluated");
+      } else if (g(requiredModule, "Status") === "async-subgraphs-searching") {
+        s(requiredModule, "Status", "async-subgraphs-evaluating-async");
       } else {
+        Assert(g(requiredModule, "Status") === "evaluating");
         s(requiredModule, "Status", "evaluating-async");
+      }
+      if (requiredModule === module && !stack.includes(module)) {
+        done = true;
+      }
+      s(requiredModule, "CycleRoot", module);
+    }
+    done = false;
+    yield bp.InnerModuleEvaluation_17_d({ module, stack, index });
+    while (done === false && stack.length !== 0) {
+      const requiredModule = stack[stack.length - 1];
+      if (
+        g(requiredModule, "Status") === "evaluated" ||
+        g(requiredModule, "Status") === "evaluating-async"
+      ) {
+        stack.pop();
+      } else {
+        done = true;
+      }
+    }
+  }
+
+  yield bp.InnerModuleEvaluation_18({ module, stack, index });
+  return NC(index);
+});
+
+const InnerAsyncSubgraphsEvaluation = AO(function* (
+  module,
+  stack,
+  index,
+  implicitState
+) {
+  yield bp.InnerAsyncSubgraphsEvaluation_1({ module, stack, index });
+  if (g(module, "HasTLA") === true) {
+    return yield* InnerModuleEvaluation(module, stack, index, implicitState);
+  }
+  if (
+    g(module, "Status") === "async-subgraphs-evaluating-async" ||
+    g(module, "Status") === "async-subgraphs-evaluated" ||
+    g(module, "Status") === "evaluating-async" ||
+    g(module, "Status") === "evaluated"
+  ) {
+    if (g(module, "EvaluationError") === undefined) return NC(index);
+    return AC(g(module, "EvaluationError"));
+  }
+  if (
+    g(module, "Status") === "async-subgraphs-searching" ||
+    g(module, "Status") === "evaluating"
+  ) {
+    return NC(index);
+  }
+
+  Assert(g(module, "Status") === "linked");
+  s(module, "Status", "async-subgraphs-searching");
+  s(module, "DFSIndex", index);
+  s(module, "DFSAncestorIndex", index);
+  s(module, "PendingAsyncDependencies", 0);
+  index += 1;
+  stack.push(module);
+
+  yield bp.InnerAsyncSubgraphsEvaluation_12({ module, stack, index });
+  for (let requiredModule of module.dependencies) {
+    yield bp.InnerAsyncSubgraphsEvaluation_12_b({
+      module,
+      stack,
+      index,
+      requiredModule,
+    });
+    const completion = yield* InnerAsyncSubgraphsEvaluation(
+      requiredModule,
+      stack,
+      index,
+      implicitState
+    );
+    yield bp.InnerAsyncSubgraphsEvaluation_12_b_completion({
+      module,
+      stack,
+      index,
+      requiredModule,
+      result: completion,
+    });
+    if (completion instanceof AC) return completion;
+    else index = completion.value;
+
+    const completion2 = AfterCyclicModuleRecordEvaluation(
+      module,
+      requiredModule,
+      stack
+    );
+    if (completion2 instanceof AC) return completion2;
+  }
+
+  yield bp.InnerAsyncSubgraphsEvaluation_13({ module, stack, index });
+  if (g(module, "PendingAsyncDependencies") > 0) {
+    Assert(g(module, "AsyncEvaluation") === false);
+    s(module, "AsyncEvaluation", true);
+    implicitState.asyncEvaluationFieldOrder.push(module);
+  }
+
+  Assert(stack.indexOf(module) === stack.lastIndexOf(module));
+  Assert(g(module, "DFSAncestorIndex") <= g(module, "DFSIndex"));
+  if (g(module, "DFSAncestorIndex") === g(module, "DFSIndex")) {
+    let done = false;
+    while (done === false) {
+      const requiredModule = stack.pop();
+      if (g(requiredModule, "AsyncEvaluation") === false) {
+        if (g(requiredModule, "Status") === "async-subgraphs-searching") {
+          s(requiredModule, "Status", "async-subgraphs-evaluated");
+        } else {
+          Assert(g(requiredModule, "Status") === "evaluating");
+          s(requiredModule, "Status", "evaluated");
+        }
+      } else {
+        if (g(requiredModule, "Status") === "async-subgraphs-searching") {
+          s(requiredModule, "Status", "async-subgraphs-evaluating-async");
+        } else {
+          Assert(g(requiredModule, "Status") === "evaluating");
+          s(requiredModule, "Status", "evaluating-async");
+        }
       }
       if (requiredModule === module) {
         done = true;
@@ -201,9 +325,66 @@ const InnerModuleEvaluation = AO(function* (
     }
   }
 
-  yield bp.InnerModuleEvaluation_17({ module, stack, index });
+  yield bp.InnerAsyncSubgraphsEvaluation_18({ module, stack, index });
   return NC(index);
 });
+
+function AfterCyclicModuleRecordEvaluation(module, requiredModule, stack) {
+  Assert(
+    g(requiredModule, "Status") === "async-subgraphs-searching" ||
+      g(requiredModule, "Status") === "async-subgraphs-evaluating-async" ||
+      g(requiredModule, "Status") === "async-subgraphs-evaluated" ||
+      g(requiredModule, "Status") === "evaluating" ||
+      g(requiredModule, "Status") === "evaluating-async" ||
+      g(requiredModule, "Status") === "evaluated"
+  );
+  Assert(
+    (g(requiredModule, "Status") === "async-subgraphs-searching" ||
+      g(requiredModule, "Status") === "evaluating") ===
+      stack.includes(requiredModule)
+  );
+  if (
+    g(requiredModule, "Status") === "evaluating" ||
+    (g(requiredModule, "Status") === "async-subgraphs-searching" &&
+      g(module, "Status") === "async-subgraphs-searching")
+  ) {
+    s(
+      module,
+      "DFSAncestorIndex",
+      Math.min(
+        g(module, "DFSAncestorIndex"),
+        g(requiredModule, "DFSAncestorIndex")
+      )
+    );
+  } else if (g(requiredModule, "Status") !== "async-subgraphs-searching") {
+    requiredModule = g(requiredModule, "CycleRoot");
+    Assert(
+      g(requiredModule, "Status") === "async-subgraphs-evaluating-async" ||
+        g(requiredModule, "Status") === "async-subgraphs-evaluated" ||
+        g(requiredModule, "Status") === "evaluating-async" ||
+        g(requiredModule, "Status") === "evaluated"
+    );
+    if (g(requiredModule, "EvaluationError") !== undefined) {
+      return AC(g(requiredModule, "EvaluationError"));
+    }
+  }
+  if (
+    g(requiredModule, "AsyncEvaluation") === true &&
+    g(module, "Status") !== "evaluated" &&
+    g(module, "Status") !== "async-subgraphs-evaluated"
+  ) {
+    s(
+      module,
+      "PendingAsyncDependencies",
+      g(module, "PendingAsyncDependencies") + 1
+    );
+    s(
+      requiredModule,
+      "AsyncParentModules",
+      g(requiredModule, "AsyncParentModules").concat(module)
+    );
+  }
+}
 
 function ExecuteSyncModule(module, implicitState) {
   console.log("Executing " + module.name);
@@ -239,9 +420,13 @@ function GatherAvailableAncestors(module, execList) {
   for (const m of g(module, "AsyncParentModules")) {
     if (
       !execList.has(m) &&
-      g(g(m, "CycleRoot"), "EvaluationError") === undefined
+      g(g(m, "CycleRoot"), "EvaluationError") === undefined &&
+      g(m, "Status") !== "evaluated"
     ) {
-      Assert(g(m, "Status") === "evaluating-async");
+      Assert(
+        g(m, "Status") === "async-subgraphs-evaluating-async" ||
+          g(m, "Status") === "evaluating-async"
+      );
       Assert(g(m, "EvaluationError") === undefined);
       Assert(g(m, "AsyncEvaluation") === true);
       Assert(g(m, "PendingAsyncDependencies") > 0);
@@ -293,11 +478,21 @@ const AsyncModuleExecutionFulfilled = AO(function* (module, implicitState) {
     } else if (g(m, "HasTLA") === true) {
       ExecuteAsyncModule(m, implicitState);
     } else {
-      const result = ExecuteSyncModule(m, implicitState);
-      if (result instanceof AC) {
-        yield* AsyncModuleExecutionRejected(m, result.value, implicitState);
+      let success = false;
+      if (g(m, "Status") === "async-subgraphs-evaluating-async") {
+        s(m, "Status", "async-subgraphs-evaluated");
+        success = true;
       } else {
-        s(m, "Status", "evaluated");
+        const result = ExecuteSyncModule(m, implicitState);
+        if (result instanceof AC) {
+          yield* AsyncModuleExecutionRejected(m, result.value, implicitState);
+        } else {
+          s(m, "Status", "evaluated");
+          success = true;
+        }
+      }
+      if (success === true) {
+        // TODO: Resolve
       }
     }
   }
