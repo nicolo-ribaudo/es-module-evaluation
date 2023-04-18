@@ -102,7 +102,7 @@ const InnerModuleEvaluation = AO(function* (
   Assert(
     g(module, "Status") === "linked" ||
       g(module, "Status") === "async-subgraphs-searching" ||
-      g(module, "Status") === "async-subgraphs-evauating-async" ||
+      g(module, "Status") === "async-subgraphs-evaluating-async" ||
       g(module, "Status") === "async-subgraphs-evaluated"
   );
   s(module, "Status", "evaluating");
@@ -176,6 +176,12 @@ const InnerModuleEvaluation = AO(function* (
   ) {
     Assert(g(module, "AsyncEvaluation") === false);
     s(module, "AsyncEvaluation", true);
+    if (implicitState.asyncEvaluationFieldOrder.includes(module)) {
+      implicitState.asyncEvaluationFieldOrder.splice(
+        implicitState.asyncEvaluationFieldOrder.indexOf(module),
+        1
+      );
+    }
     implicitState.asyncEvaluationFieldOrder.push(module);
     if (g(module, "PendingAsyncDependencies") === 0) {
       ExecuteAsyncModule(module, implicitState);
@@ -378,11 +384,13 @@ function AfterCyclicModuleRecordEvaluation(module, requiredModule, stack) {
       "PendingAsyncDependencies",
       g(module, "PendingAsyncDependencies") + 1
     );
-    s(
-      requiredModule,
-      "AsyncParentModules",
-      g(requiredModule, "AsyncParentModules").concat(module)
-    );
+    if (!g(requiredModule, "AsyncParentModules").includes(module)) {
+      s(
+        requiredModule,
+        "AsyncParentModules",
+        g(requiredModule, "AsyncParentModules").concat(module)
+      );
+    }
   }
 }
 
