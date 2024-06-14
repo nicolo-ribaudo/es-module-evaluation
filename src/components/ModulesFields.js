@@ -13,7 +13,7 @@ export default function ModulesFields() {
         <th>[[DFSAncestorIndex]]</th>
         <th>[[CycleRoot]]</th>
         <th>[[HasTLA]]</th>
-        <th>[[AsyncEvaluation]]</th>
+        <th>[[AsyncEvaluationOrder]]</th>
         <th>[[AsyncParentModules]]</th>
         <th>[[PendingAsyncDependencies]]</th>
         <th>[[EvaluationError]]</th>
@@ -35,7 +35,7 @@ function SingleModuleFields({ name, fields }) {
       <${StringField} field=${fields.DFSAncestorIndex} />
       <${StringField} field=${fields.CycleRoot} render=${getName} />
       <${BooleanField} field=${fields.HasTLA} />
-      <${BooleanField} field=${fields.AsyncEvaluation} />
+      <${StringField} field=${fields.AsyncEvaluationOrder} />
       <${ListField} field=${fields.AsyncParentModules} render=${getName} />
       <${StringField} field=${fields.PendingAsyncDependencies} />
       <${StringField} field=${fields.EvaluationError} />

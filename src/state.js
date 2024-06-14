@@ -89,7 +89,7 @@ export function computeModulesState() {
       DFSAncestorIndex: signal(undefined),
       CycleRoot: signal(undefined),
       HasTLA: signal(false),
-      AsyncEvaluation: signal(false),
+      AsyncEvaluationOrder: signal(null),
       AsyncParentModules: signal([]),
       PendingAsyncDependencies: signal(undefined),
     },

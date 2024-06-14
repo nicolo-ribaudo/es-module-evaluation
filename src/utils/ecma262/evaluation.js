@@ -35,7 +35,7 @@ const Evaluate = AO(function* (module, failingModules, pendingPromiseJobs) {
   // algorithm, but we need it to implement the correct semantics.
   const implicitState = {
     pendingPromiseJobs,
-    asyncEvaluationFieldOrder: [],
+    asyncEvaluationCount: 0,
     failingModules,
   };
 
@@ -67,7 +67,7 @@ const Evaluate = AO(function* (module, failingModules, pendingPromiseJobs) {
         g(module, "Status") === "evaluated"
     );
     Assert(g(module, "EvaluationError") === undefined);
-    if (g(module, "AsyncEvaluation") === false) {
+    if (g(module, "AsyncEvaluationOrder") === null) {
       Assert(g(module, "Status") === "evaluated");
       // TODO: Resolve
     }
@@ -153,7 +153,7 @@ const InnerModuleEvaluation = AO(function* (
         return g(requiredModule, "EvaluationError");
       }
     }
-    if (g(requiredModule, "AsyncEvaluation") === true) {
+    if (typeof g(requiredModule, "AsyncEvaluationOrder") === "number") {
       s(
         module,
         "PendingAsyncDependencies",
@@ -172,9 +172,8 @@ const InnerModuleEvaluation = AO(function* (
     g(module, "PendingAsyncDependencies") > 0 ||
     g(module, "HasTLA") === true
   ) {
-    Assert(g(module, "AsyncEvaluation") === false);
-    s(module, "AsyncEvaluation", true);
-    implicitState.asyncEvaluationFieldOrder.push(module);
+    Assert(g(module, "AsyncEvaluationOrder") === null);
+    s(module, "AsyncEvaluationOrder", implicitState.asyncEvaluationCount++);
     if (g(module, "PendingAsyncDependencies") === 0) {
       ExecuteAsyncModule(module, implicitState);
     }
@@ -189,7 +188,7 @@ const InnerModuleEvaluation = AO(function* (
     let done = false;
     while (done === false) {
       const requiredModule = stack.pop();
-      if (g(requiredModule, "AsyncEvaluation") === false) {
+      if (g(requiredModule, "AsyncEvaluationOrder") === null) {
         s(requiredModule, "Status", "evaluated");
       } else {
         s(requiredModule, "Status", "evaluating-async");
@@ -243,7 +242,7 @@ function GatherAvailableAncestors(module, execList) {
     ) {
       Assert(g(m, "Status") === "evaluating-async");
       Assert(g(m, "EvaluationError") === undefined);
-      Assert(g(m, "AsyncEvaluation") === true);
+      Assert(typeof g(m, "AsyncEvaluationOrder") === "number");
       Assert(g(m, "PendingAsyncDependencies") > 0);
       s(m, "PendingAsyncDependencies", g(m, "PendingAsyncDependencies") - 1);
       if (g(m, "PendingAsyncDependencies") === 0) {
@@ -262,25 +261,25 @@ const AsyncModuleExecutionFulfilled = AO(function* (module, implicitState) {
     return;
   }
   Assert(g(module, "Status") === "evaluating-async");
-  Assert(g(module, "AsyncEvaluation") === true);
+  Assert(typeof g(module, "AsyncEvaluationOrder") === "number");
   Assert(g(module, "EvaluationError") === undefined);
-  s(module, "AsyncEvaluation", false);
+  s(module, "AsyncEvaluationOrder", null);
   s(module, "Status", "evaluated");
 
   yield bp.AsyncModuleExecutionFulfilled_8({ module });
   const execList = new Set();
   GatherAvailableAncestors(module, execList);
-  const sortedExecList = implicitState.asyncEvaluationFieldOrder.filter((m) =>
-    execList.has(m)
-  );
   Assert(
-    sortedExecList.every(
+    execList.every(
       (m) =>
-        g(m, "AsyncEvaluation") === true &&
+        typeof g(m, "AsyncEvaluationOrder") === "number" &&
         g(m, "PendingAsyncDependencies") === 0 &&
         g(m, "EvaluationError") === undefined
     )
   );
+  const sortedExecList = Array.from(execList).sort((a, b) => {
+    return g(a, "AsyncEvaluationOrder") - g(b, "AsyncEvaluationOrder");
+  });
 
   for (const m of sortedExecList) {
     yield bp.AsyncModuleExecutionFulfilled_12_a({
@@ -315,7 +314,7 @@ const AsyncModuleExecutionRejected = AO(function* (
     return;
   }
   Assert(g(module, "Status") === "evaluating-async");
-  Assert(g(module, "AsyncEvaluation") === true);
+  Assert(typeof g(module, "AsyncEvaluationOrder") === "number");
   Assert(g(module, "EvaluationError") === undefined);
   yield bp.AsyncModuleExecutionRejected_5({ module, error });
   s(module, "EvaluationError", error);
