@@ -95,7 +95,8 @@ const InnerModuleEvaluation = AO(function* (
 
   Assert(g(module, "Status") === "linked");
   s(module, "Status", "evaluating");
-  s(module, "DFSIndex", index);
+  const moduleIndex = index;
+  s(module, "_moduleIndex_", moduleIndex);
   s(module, "DFSAncestorIndex", index);
   s(module, "PendingAsyncDependencies", 0);
   index += 1;
@@ -183,8 +184,8 @@ const InnerModuleEvaluation = AO(function* (
   }
 
   Assert(stack.filter((m) => m === module).length === 1);
-  Assert(g(module, "DFSAncestorIndex") <= g(module, "DFSIndex"));
-  if (g(module, "DFSAncestorIndex") === g(module, "DFSIndex")) {
+  Assert(g(module, "DFSAncestorIndex") <= moduleIndex);
+  if (g(module, "DFSAncestorIndex") === moduleIndex) {
     let done = false;
     while (done === false) {
       const requiredModule = stack.pop();
