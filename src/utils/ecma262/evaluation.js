@@ -271,7 +271,7 @@ const AsyncModuleExecutionFulfilled = AO(function* (module, implicitState) {
   const execList = new Set();
   GatherAvailableAncestors(module, execList);
   Assert(
-    execList.every(
+    Array.from(execList).every(
       (m) =>
         typeof g(m, "AsyncEvaluationOrder") === "number" &&
         g(m, "PendingAsyncDependencies") === 0 &&
