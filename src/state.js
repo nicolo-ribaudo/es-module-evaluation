@@ -88,7 +88,7 @@ export function computeModulesState() {
       Status: signal("linked"),
       EvaluationError: signal(undefined),
       _moduleIndex_: signal(undefined),
-      DFSAncestorIndex: signal(undefined),
+      _sccAncestorIndex_: signal(undefined),
       CycleRoot: signal(undefined),
       HasTLA: signal(false),
       AsyncEvaluationOrder: signal(null),

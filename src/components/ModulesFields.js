@@ -10,7 +10,7 @@ export default function ModulesFields() {
         <th>Name</th>
         <th>[[Status]]</th>
         <th><i>_moduleIndex_</i></th>
-        <th>[[DFSAncestorIndex]]</th>
+        <th><i>_sccAncestorIndex_</i></th>
         <th>[[CycleRoot]]</th>
         <th>[[HasTLA]]</th>
         <th>[[AsyncEvaluationOrder]]</th>
@@ -32,7 +32,7 @@ function SingleModuleFields({ name, fields }) {
       <th>${name}</th>
       <${EnumField} field=${fields.Status} />
       <${StringField} field=${fields._moduleIndex_} />
-      <${StringField} field=${fields.DFSAncestorIndex} />
+      <${StringField} field=${fields._sccAncestorIndex_} />
       <${StringField} field=${fields.CycleRoot} render=${getName} />
       <${BooleanField} field=${fields.HasTLA} />
       <${StringField} field=${fields.AsyncEvaluationOrder} />

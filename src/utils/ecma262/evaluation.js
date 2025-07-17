@@ -47,7 +47,7 @@ const Evaluate = AO(function* (module, failingModules, pendingPromiseJobs) {
   );
 
   const stack = [];
-  const result = yield* InnerModuleEvaluation(module, stack, 0, implicitState);
+  const result = yield* InnerModuleEvaluation(module, stack, implicitState);
 
   yield bp.Evaluate_9({ module, result, stack });
   if (result instanceof AC) {
@@ -76,56 +76,52 @@ const Evaluate = AO(function* (module, failingModules, pendingPromiseJobs) {
   }
 });
 
-const InnerModuleEvaluation = AO(function* (
-  module,
-  stack,
-  index,
-  implicitState
-) {
-  yield bp.InnerModuleEvaluation_2({ module, stack, index });
+const InnerModuleEvaluation = AO(function* (module, stack, implicitState) {
+  const moduleIndex = stack.length;
+  yield bp.InnerModuleEvaluation_2({ module, stack });
   if (
     g(module, "Status") === "evaluating-async" ||
     g(module, "Status") === "evaluated"
   ) {
-    if (g(module, "EvaluationError") === undefined) return NC(index);
+    if (g(module, "EvaluationError") === undefined) return NC(moduleIndex);
     return AC(g(module, "EvaluationError"));
   }
   if (g(module, "Status") === "evaluating") {
-    return NC(index);
+    Assert(stack.filter((m) => m === module).length === 1);
+    return NC(stack.indexOf(module));
   }
 
   Assert(g(module, "Status") === "linked");
   s(module, "Status", "evaluating");
-  const moduleIndex = index;
-  s(module, "_moduleIndex_", moduleIndex);
-  s(module, "DFSAncestorIndex", index);
   s(module, "PendingAsyncDependencies", 0);
-  index += 1;
+  let sccAncestorIndex = moduleIndex;
+  s(module, "_moduleIndex_", moduleIndex);
+  s(module, "_sccAncestorIndex_", sccAncestorIndex);
   stack.push(module);
 
-  yield bp.InnerModuleEvaluation_11({ module, stack, index });
+  yield bp.InnerModuleEvaluation_11({ module, stack });
   for (let requiredModule of module.dependencies) {
     yield bp.InnerModuleEvaluation_11_b({
       module,
       stack,
-      index,
       requiredModule,
     });
     const completion = yield* InnerModuleEvaluation(
       requiredModule,
       stack,
-      index,
       implicitState
     );
     yield bp.InnerModuleEvaluation_11_b_completion({
       module,
       stack,
-      index,
       requiredModule,
       result: completion,
     });
     if (completion instanceof AC) return completion;
-    else index = completion.value;
+
+    const childSccAncestorIndex = completion.value;
+    sccAncestorIndex = Math.min(sccAncestorIndex, childSccAncestorIndex);
+    s(module, "_sccAncestorIndex_", sccAncestorIndex);
 
     Assert(
       g(requiredModule, "Status") === "evaluating" ||
@@ -136,16 +132,7 @@ const InnerModuleEvaluation = AO(function* (
       (g(requiredModule, "Status") === "evaluating") ===
         stack.includes(requiredModule)
     );
-    if (g(requiredModule, "Status") === "evaluating") {
-      s(
-        module,
-        "DFSAncestorIndex",
-        Math.min(
-          g(module, "DFSAncestorIndex"),
-          g(requiredModule, "DFSAncestorIndex")
-        )
-      );
-    } else {
+    if (g(requiredModule, "Status") !== "evaluating") {
       requiredModule = g(requiredModule, "CycleRoot");
       Assert(
         g(requiredModule, "Status") === "evaluating-async" ||
@@ -169,7 +156,7 @@ const InnerModuleEvaluation = AO(function* (
     }
   }
 
-  yield bp.InnerModuleEvaluation_12({ module, stack, index });
+  yield bp.InnerModuleEvaluation_12({ module, stack });
   if (
     g(module, "PendingAsyncDependencies") > 0 ||
     g(module, "HasTLA") === true
@@ -185,8 +172,8 @@ const InnerModuleEvaluation = AO(function* (
   }
 
   Assert(stack.filter((m) => m === module).length === 1);
-  Assert(g(module, "DFSAncestorIndex") <= moduleIndex);
-  if (g(module, "DFSAncestorIndex") === moduleIndex) {
+  Assert(sccAncestorIndex <= moduleIndex);
+  if (sccAncestorIndex === moduleIndex) {
     const scc = [];
     let done = false;
     while (done === false) {
@@ -208,8 +195,8 @@ const InnerModuleEvaluation = AO(function* (
     ];
   }
 
-  yield bp.InnerModuleEvaluation_17({ module, stack, index });
-  return NC(index);
+  yield bp.InnerModuleEvaluation_17({ module, stack });
+  return NC(sccAncestorIndex);
 });
 
 function ExecuteSyncModule(module, implicitState) {

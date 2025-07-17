@@ -129,7 +129,9 @@ function inspectValue(arg) {
     }
     if (arg.name) return arg.name;
     if (Array.isArray(arg))
-      return "« " + arg.map(inspectValue).join(", ") + " »";
+      return (
+        "« " + arg.map(inspectValue).join(", ") + " » (" + arg.length + ")"
+      );
   }
   return JSON.stringify(arg);
 }
