@@ -63,6 +63,8 @@ export const entrypointModule = computed(() =>
   modulesState.value.find((m) => m.name === "A")
 );
 
+export const stronglyConnectedComponents = signal([]);
+
 export const currentEvaluation = signal(undefined);
 
 export const currentBreakpoint = {

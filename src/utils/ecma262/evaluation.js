@@ -1,6 +1,7 @@
 import { Assert, AC, NC } from "./spec-utils.js";
 import bp, { beforePromiseJob } from "./breakpoints.js";
 import { AO } from "./stack-utils.js";
+import { stronglyConnectedComponents } from "../../state.js";
 
 function g(module, fieldName) {
   return module.fields[fieldName].peek();
@@ -186,6 +187,7 @@ const InnerModuleEvaluation = AO(function* (
   Assert(stack.filter((m) => m === module).length === 1);
   Assert(g(module, "DFSAncestorIndex") <= moduleIndex);
   if (g(module, "DFSAncestorIndex") === moduleIndex) {
+    const scc = [];
     let done = false;
     while (done === false) {
       const requiredModule = stack.pop();
@@ -198,7 +200,12 @@ const InnerModuleEvaluation = AO(function* (
         done = true;
       }
       s(requiredModule, "CycleRoot", module);
+      scc.unshift(requiredModule.name);
     }
+    stronglyConnectedComponents.value = [
+      ...stronglyConnectedComponents.value,
+      scc,
+    ];
   }
 
   yield bp.InnerModuleEvaluation_17({ module, stack, index });

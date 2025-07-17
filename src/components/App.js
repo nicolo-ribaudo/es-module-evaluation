@@ -3,6 +3,7 @@ import { html } from "htm/preact";
 import GraphInput from "./GraphInput.js";
 import ModulesFields from "./ModulesFields.js";
 import EvaluationControls from "./EvaluationControls.js";
+import StronglyConnectedComponents from "./StronglyConnectedComponents.js";
 import Graph from "./Graph.js";
 
 export default function App() {
@@ -12,6 +13,7 @@ export default function App() {
       <${Graph} />
     </div>
     <${EvaluationControls} />
+    <${StronglyConnectedComponents} />
     <${ModulesFields} />
   `;
 }

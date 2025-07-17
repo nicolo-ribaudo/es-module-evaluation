@@ -8,6 +8,7 @@ import {
   computeModulesState,
   currentBreakpoint,
   stale,
+  stronglyConnectedComponents,
 } from "../state.js";
 import Evaluate from "../utils/ecma262/evaluation.js";
 import { NC, AC } from "../utils/ecma262/spec-utils.js";
@@ -140,6 +141,7 @@ function loadEvaluation() {
     graph.value.asyncModules,
     graph.value.failingModules
   );
+  stronglyConnectedComponents.value = [];
   stale.value = false;
   currentBreakpoint.count = 0;
   stepIn();
